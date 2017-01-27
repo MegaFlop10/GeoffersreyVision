@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from networktables import NetworkTables
 
 
 # Converts to HSV, then filters the image so only green remains.
@@ -55,6 +56,15 @@ def find_coordinates(target_contour):
     return x, y
 
 
+# Called when 'request' changes
+def handle_request():
+    table.putNumber('targetAngle', x) # x & y are not actually angle & distance yet
+    table.putNumber('targetDistance', y)
+
+
+table = NetworkTables.initialize(server='roboRIO-9985-frc.local')
+table.addTableListener(handle_request, key='request')
+
 # Start video capture with camera 0
 cap = cv2.VideoCapture(0)
 while True:
@@ -71,3 +81,8 @@ while True:
     # Display original image, which has the contour and x, y drawn onto it
     cv2.imshow("Video Capture", img)
     cv2.waitKey(1)
+
+    table = NetworkTables.getTable('vision')
+   
+
+    
