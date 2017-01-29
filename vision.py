@@ -5,8 +5,10 @@ import math
 
 
 # Constants
-FOCAL_LENGTH = 939.965898323  # Focal length of the Microsoft LifeCam HD3000
-IMAGE_WIDTH = 1280  # Pixel width of the Microsoft LifeCam HD3000 (Apparently)
+CAMERA_PORT = 0
+# FOCAL_LENGTH = 571.4  # Focal length of the camera
+IMAGE_WIDTH = 640  # Pixel width of the camera
+FIELD_OF_VIEW = 62.8  # Horizontal FOV of the camera
 
 # Define threshold values (H, S, V)
 THRESH_MIN = np.array([50, 50, 0], np.uint8)
@@ -65,7 +67,10 @@ def find_coordinates(target_contour):
 # Find angle to the target
 def find_angle(x_target):
     image_centre = IMAGE_WIDTH / 2
-    angle = math.atan((x_target - image_centre) / FOCAL_LENGTH)  # Formula based on 254's presentation
+    pixels_per_degree = FIELD_OF_VIEW / IMAGE_WIDTH
+
+    angle = (x_target - image_centre) * pixels_per_degree  # Approx method  TODO: Find focal length for the other method
+    # angle = math.atan((x_target - image_centre) / FOCAL_LENGTH)  # Formula based on 254's presentation
     return angle
 
 
@@ -82,23 +87,19 @@ NetworkTables.initialize(server='roboRIO-9985-frc.local')  # TODO: Set to static
 table = NetworkTables.getTable("vision")
 table.addTableListener(handle_request)
 
-# Start video capture with camera 0
-cap = cv2.VideoCapture(0)
-while True:
-    # Read image
-    retval, img = cap.read()
+cap = cv2.VideoCapture(CAMERA_PORT)  # Start video capture with camera
 
-    # Remove non-green pixels
-    threshed = threshold()
-    # Find the largest contour
-    target = find_target()
-    # Find its coordinates
-    x, y = find_coordinates(target)
-    # Find angle of target
-    targetAngle = find_angle(x)
+while True:
+    retval, img = cap.read()  # Read image
+
+    threshed = threshold()  # Remove non-green pixels
+    target = find_target()  # Find the largest contour
+    x, y = find_coordinates(target)  # Find its coordinates
+    targetAngle = find_angle(x)  # Find angle of target
     
     # Display original image, which has the contour and x, y drawn onto it
     cv2.imshow("Video Capture", img)
     cv2.waitKey(1)
 
+    # Refresh networktables
     table = NetworkTables.getTable('vision')
