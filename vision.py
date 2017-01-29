@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from networktables import NetworkTables
+import time
 
 
 # Converts to HSV, then filters the image so only green remains.
@@ -56,17 +57,27 @@ def find_coordinates(target_contour):
     return x, y
 
 
+# Find angle to the target
+def find_angle(x_target):
+    pass                                                                                                              
+
+
 # Called when 'request' changes
-def handle_request():
-    table.putNumber('targetAngle', x) # x & y are not actually angle & distance yet
-    table.putNumber('targetDistance', y)
+def handle_request(table, key, value, isNew):
+    print("Request Received")
+    if (key == 'request' and value == True):
+            table.putNumber('targetAngle', x) # x & y are not actually angle & distance yet
+            table.putNumber('targetDistance', y)
+            table.putBoolean('request',False)
 
 
-table = NetworkTables.initialize(server='roboRIO-9985-frc.local')
-table.addTableListener(handle_request, key='request')
+NetworkTables.initialize(server='roboRIO-9985-frc.local')
+table =  NetworkTables.getTable("vision")
+table.addTableListener(handle_request)
 
 # Start video capture with camera 0
 cap = cv2.VideoCapture(0)
+start_tick=time.time()
 while True:
     # Read image
     retval, img = cap.read()
@@ -77,12 +88,21 @@ while True:
     target = find_target()
     # Find its coordinates
     x, y = find_coordinates(target)
+    # Find angle of target
+    
 
     # Display original image, which has the contour and x, y drawn onto it
     cv2.imshow("Video Capture", img)
     cv2.waitKey(1)
 
     table = NetworkTables.getTable('vision')
-   
+    count_tick = time.time() - start_tick
+    if (count_tick > 10.0):
+        print("10s passed")
+        print(table.getBoolean('request'))
+        
+        #print(" targetAngle="+table.getNumber('targetAngle')+" targetDistance="+table.getNumber('targetDistance')+"\n")
+        
+        start_tick=time.time()   
 
     
