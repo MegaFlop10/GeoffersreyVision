@@ -6,9 +6,12 @@ import math
 
 # Constants
 CAMERA_PORT = 0
-# FOCAL_LENGTH = 571.4  # Focal length of the camera
-IMAGE_WIDTH = 640  # Pixel width of the camera
-FIELD_OF_VIEW = 62.8  # Horizontal FOV of the camera
+# FOCAL_LENGTH = 571.4
+IMAGE_WIDTH = 640  # Pixel width
+IMAGE_HEIGHT = 480  # Pixel height
+FIELD_OF_VIEW = 62.8  # Horizontal FOV
+DEGREES_PER_PIXEL = FIELD_OF_VIEW / IMAGE_WIDTH
+CAMERA_HEIGHT = 30  # Height of camera from centre of target
 
 # Define threshold values (H, S, V)
 THRESH_MIN = np.array([50, 50, 0], np.uint8)
@@ -66,12 +69,18 @@ def find_coordinates(target_contour):
 
 # Find angle to the target
 def find_angle(x_target):
-    image_centre = IMAGE_WIDTH / 2
-    pixels_per_degree = FIELD_OF_VIEW / IMAGE_WIDTH
-
-    angle = (x_target - image_centre) * pixels_per_degree  # Approx method  TODO: Find focal length for the other method
+    image_x_centre = IMAGE_WIDTH / 2
+    angle = (x_target - image_x_centre) * DEGREES_PER_PIXEL  # Approx method  TODO: Find focal length for other method
     # angle = math.atan((x_target - image_centre) / FOCAL_LENGTH)  # Formula based on 254's presentation
     return angle
+
+
+# Find distance to the target
+def find_distance(y_target):
+    image_y_centre = IMAGE_HEIGHT / 2
+    vertAngle = 90 - ((y_target-image_y_centre) * DEGREES_PER_PIXEL)
+    distance = (math.sin(vertAngle)/math.cos(vertAngle)) * CAMERA_HEIGHT
+    return distance
 
 
 # Called when 'request' changes
@@ -79,7 +88,7 @@ def handle_request(table, key, value, isNew):
     print("Request Received")
     if key == 'request' and value is True:
             table.putNumber('targetAngle', targetAngle)  # x & y are not actually angle & distance yet
-            table.putNumber('targetDistance', y)
+            table.putNumber('targetDistance', targetDistance)
             table.putBoolean('request', False)
 
 
@@ -96,6 +105,7 @@ while True:
     target = find_target()  # Find the largest contour
     x, y = find_coordinates(target)  # Find its coordinates
     targetAngle = find_angle(x)  # Find angle of target
+    targetDistance = find_distance(y)
     
     # Display original image, which has the contour and x, y drawn onto it
     cv2.imshow("Video Capture", img)
