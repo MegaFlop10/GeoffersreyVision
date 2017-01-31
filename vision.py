@@ -6,12 +6,13 @@ import math
 
 # Constants
 CAMERA_PORT = 0
-# FOCAL_LENGTH = 571.4
-IMAGE_WIDTH = 640  # Pixel width
-IMAGE_HEIGHT = 480  # Pixel height
-FIELD_OF_VIEW = 62.8  # Horizontal FOV
+FOCAL_LENGTH = 571.4
+IMAGE_WIDTH = 320  # Pixel width
+IMAGE_HEIGHT = 180  # Pixel height
+FIELD_OF_VIEW = 55.67  # Horizontal FOV of Microsoft LifeCam HD3000
 DEGREES_PER_PIXEL = FIELD_OF_VIEW / IMAGE_WIDTH
-CAMERA_HEIGHT = 30  # Height of camera from centre of target
+
+TARGET_HEIGHT = 57  # Height of the target in mm
 
 # Define threshold values (H, S, V)
 THRESH_MIN = np.array([50, 50, 0], np.uint8)
@@ -58,13 +59,15 @@ def find_coordinates(target_contour):
 
         x = rect[0] + (rect[2] / 2)
         y = rect[1] + (rect[3] / 2)
+        height = rect[3]
 
         cv2.circle(img, (x, y), 5, 100, thickness=3)
     except cv2.error:
         x = 0
         y = 0
+        height = -1
 
-    return x, y
+    return x, y, height
 
 
 # Find angle to the target
@@ -76,10 +79,9 @@ def find_angle(x_target):
 
 
 # Find distance to the target
-def find_distance(y_target):
-    image_y_centre = IMAGE_HEIGHT / 2
-    vertAngle = 90 - ((y_target-image_y_centre) * DEGREES_PER_PIXEL)
-    distance = (math.sin(vertAngle)/math.cos(vertAngle)) * CAMERA_HEIGHT
+def find_distance(target_height):
+    # TARGET_HEIGHT is the height in mm, target_height is the height in px
+    distance = TARGET_HEIGHT * IMAGE_HEIGHT / (2*target_height * math.tan(FIELD_OF_VIEW/2))
     return distance
 
 
@@ -97,15 +99,19 @@ table = NetworkTables.getTable("vision")
 table.addTableListener(handle_request)
 
 cap = cv2.VideoCapture(CAMERA_PORT)  # Start video capture with camera
+cap.set(3, IMAGE_WIDTH)
+cap.set(4, IMAGE_HEIGHT)
 
 while True:
     retval, img = cap.read()  # Read image
 
     threshed = threshold()  # Remove non-green pixels
     target = find_target()  # Find the largest contour
-    x, y = find_coordinates(target)  # Find its coordinates
+    x, y, height = find_coordinates(target)  # Find its coordinates
     targetAngle = find_angle(x)  # Find angle of target
-    targetDistance = find_distance(y)
+    targetDistance = find_distance(height)
+
+    print(targetDistance)
     
     # Display original image, which has the contour and x, y drawn onto it
     cv2.imshow("Video Capture", img)
@@ -113,3 +119,5 @@ while True:
 
     # Refresh networktables
     table = NetworkTables.getTable('vision')
+
+
