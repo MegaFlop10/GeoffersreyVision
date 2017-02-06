@@ -5,17 +5,17 @@ import math
 
 
 # Constants
-CAMERA_PORT = 0
+CAMERA_PORT = 1
 FOCAL_LENGTH = 571.4
 IMAGE_WIDTH = 320  # Pixel width
 IMAGE_HEIGHT = 180  # Pixel height
 FIELD_OF_VIEW = 55.67  # Horizontal FOV of Microsoft LifeCam HD3000
 DEGREES_PER_PIXEL = FIELD_OF_VIEW / IMAGE_WIDTH
 
-TARGET_HEIGHT = 57  # Height of the target in mm
+TARGET_HEIGHT = 127  # Height of the target in mm
 
 # Define threshold values (H, S, V)
-THRESH_MIN = np.array([50, 50, 0], np.uint8)
+THRESH_MIN = np.array([50, 70, 0], np.uint8)
 THRESH_MAX = np.array([80, 255, 255], np.uint8)
 
 
@@ -81,7 +81,7 @@ def find_angle(x_target):
 # Find distance to the target
 def find_distance(target_height):
     # TARGET_HEIGHT is the height in mm, target_height is the height in px
-    distance = TARGET_HEIGHT * IMAGE_HEIGHT / (2*target_height * math.tan(FIELD_OF_VIEW/2))
+    distance = -(TARGET_HEIGHT * IMAGE_HEIGHT / (2*target_height * math.tan(FIELD_OF_VIEW/2)))
     return distance
 
 
@@ -115,6 +115,7 @@ while True:
     
     # Display original image, which has the contour and x, y drawn onto it
     cv2.imshow("Video Capture", img)
+    cv2.imshow("Threshold", threshed)
     cv2.waitKey(1)
 
     # Refresh networktables
